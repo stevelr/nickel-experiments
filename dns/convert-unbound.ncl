@@ -14,7 +14,7 @@ in
 
 let
 # find subset of config schema that are dns servers
-dns_servers | Array dns.DnsServer = (
+dns_servers = (
   std.array.filter
     (fun server => server.kind == 'Dns)
     (std.record.values input.config)
@@ -22,17 +22,14 @@ dns_servers | Array dns.DnsServer = (
 if_not_null = fun val expr => if val != null then expr else {},
 in
 let
-  dns_server_by_id
-    : (String -> (Array dns.DnsServer) -> dns.DnsServer)
-    = (fun id server_list =>
-      (
-        (common.find-first (fun server => (id == server.id)) server_list)
-        |> match {
-          # id must be id of a configured DnsServer, otherwise this contract will fail
-          'Some server => (server | dns.DnsServer),
-          'None => std.fail_with "Configuration is missing a DNS server with id %{std.to_string id}",
-        }
-      ) | dns.DnsServer
+  dns_server_by_id = fun id server_list =>
+    (
+      (common.find-first (fun server => (id == server.id)) server_list)
+      |> match {
+        # id must be id of a configured DnsServer, otherwise this contract will fail
+        'Some server => server | (dns.DnsServer & { .. }),
+        'None => std.fail_with "Configuration is missing a DNS server with id %{std.to_string id}",
+      }
     ),
   remote-control-enabled = common.getdeep_or false [cfg, "extra", "settings", "remote-control", "control-enable"],
   # true if the list of addresses includes localhost
@@ -167,7 +164,7 @@ in
         |> std.array.map (fun zone =>
           (
             # dereference serverId to lookup server definition
-            let server = dns_server_by_id zone.serverId dns_servers,
+            let server | (dns.DnsServer & { .. }) = dns_server_by_id zone.serverId dns_servers,
             in
             {
               name = if zone.domain == "*" then "." else zone.domain,
