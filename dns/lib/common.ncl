@@ -81,7 +81,7 @@
 
   # Traverse into a nested struct to get a value. If the array's terminal value,
   # and all its parents, are non-null and non-empty, returns 'Some value, otherwise 'None
-  # All elements of the array must be either a record or null
+  # All elements of the array (other than the last) must be either a record or null
   #
   # Example:
   # ```nickel
