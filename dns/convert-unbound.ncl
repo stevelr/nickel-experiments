@@ -174,19 +174,18 @@ in
               forward-addr =
                 server.address
                 |> std.array.filter_map (fun hp =>
-                  common.getdeep [hp, "address"]
-                  |> match {
-                    'None => 'None,
-                    'Some addr => 'Some (if std.record.has_field "port" hp then "%{addr}@%{hp.port}" else "%{addr}")
-                  }
+                  (common.getdeep [hp, "address"])
+                  |> std.enum.map (fun addr =>
+                    if std.record.has_field "port" hp then "%{addr}@%{hp.port}" else "%{addr}"
+                  )
                 ),
               forward-host =
                 server.address
                 |> std.array.filter_map (fun hp =>
-                  if (std.record.has_field "hostname" hp) then
-                    'Some (if std.record.has_field "port" hp then "%{hp.hostname}@%{hp.port}" else "%{hp.hostname}")
-                  else
-                    'None
+                  (common.getdeep [hp, "hostname"])
+                  |> std.enum.map (fun host =>
+                    if std.record.has_field "port" hp then "%{host}@%{hp.port}" else "%{host}"
+                  )
                 ),
             }
           )
