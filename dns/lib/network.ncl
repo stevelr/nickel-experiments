@@ -15,24 +15,21 @@ ip4_regex = "^((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]
 in {
 
   patterns = {
-    # true that a string can be converted to an int in the range 0 to max, inclusive
+    # true if the string can be converted to an int in the range 0 to max, inclusive
     _is_strnum_le : String -> Number -> Bool = fun str max =>
       std.string.is_match "^\\d+$" str
-      && (
-        let num = std.string.to_number str in
-        num <= max
-      ),
-    is_ip4_regex : String -> Bool = fun str => std.string.is_match ip4_regex str,
-    is_ip6_regex : String -> Bool = fun str => std.string.is_match ip6_regex str,
+      && (std.string.to_number str) <= max,
+    is_ip4_regex : String -> Bool = std.string.is_match ip4_regex,
+    is_ip6_regex : String -> Bool = std.string.is_match ip6_regex,
     is_ip_regex : String -> Bool = fun addr => is_ip4_regex addr || is_ip6_regex addr,
-    is_ip4_cidr : String -> Bool = fun addr => is_ip_cidr addr is_ip4_regex 32,
-    is_ip6_cidr : String -> Bool = fun addr => is_ip_cidr addr is_ip6_regex 128,
+    is_ip4_cidr : String -> Bool = is_ip_cidr is_ip4_regex 32,
+    is_ip6_cidr : String -> Bool = is_ip_cidr is_ip6_regex 128,
     # handle ip4 or ip6 with regex function and optional /prefix bits
-    is_ip_cidr : String -> (String -> Bool) -> Number -> Bool = fun s fn_regex bits =>
-      let split = std.string.split "/" s in
+    is_ip_cidr : (String -> Bool) -> Number -> String -> Bool = fun fn_regex bits addr =>
+      let split = std.string.split "/" addr in
       std.array.length split
       |> match {
-        1 => fn_regex s,
+        1 => fn_regex addr,
         2 => fn_regex (std.array.at 0 split) && (_is_strnum_le (std.array.at 1 split) bits),
         _ => false,
       },
@@ -52,11 +49,8 @@ in {
     features | { _ : Dyn } | optional | default = {},
   },
 
-  # port : number from 0 to 65535
-  Port =
-    std.contract.from_predicate (fun port =>
-      (std.number.is_integer port) && port >= 0 && port <= 65535
-    ),
+  # Port : contract verifying valid port number
+  Port = common.IntInRange 0 65535,
 
   # Ipv4 address
   Ip4Address =
