@@ -12,7 +12,11 @@
         std.contract.check Contract label value
     ),
 
+  # "type alias" for object id
   Id = std.contract.from_predicate std.is_string,
+
+  # "type alias" for os file system path
+  FilePath = std.contract.from_predicate std.is_string,
 
   IntInRange = fun min max =>
     std.contract.from_predicate (fun value =>
@@ -20,9 +24,6 @@
       && value >= min
       && value <= max
     ),
-
-  # type alias for OS file path
-  FilePath = String,
 
   ExtraSettings : { _ : Dyn } = {
     ..
@@ -51,15 +52,13 @@
   # common settings for system services
   SystemService = {
     user | String | optional,
-    #uid | std.number.nat | optional,
     group | String | optional,
-    #gid | std.number.nat | optional,
     workingDir | FilePath | optional,
     autoStart | Bool | default = true,
   },
 
   Entity = {
-    id | doc "unique entity id" | String,
+    id | doc "unique entity id" | Id,
     kind | doc "tag for object kind" | std.enum.TagOrString,
     comment | doc "optional notes about object" | optional,
     tags | doc "optional list of tags" | optional | Array std.enum.TagOrString,
