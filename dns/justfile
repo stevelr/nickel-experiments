@@ -1,0 +1,25 @@
+nickel := "nickel"
+
+# list available commands
+_default:
+    just --list
+
+# evaluate a nickel file with error checking
+_eval FILE:
+    {{nickel}} eval {{FILE}}
+
+# run all available tests. If successful, displays generated json config
+test-all: test-network test-dns gen-unbound
+    jq < out/unbound-conf.json
+
+# test network library and ip address regex
+test-network: (_eval "test/test-network.ncl")
+
+# test dns library and example config
+test-dns: (_eval "example-dns.ncl")
+
+# convert generic config to nixos-ready json for service.unbound
+gen-unbound:
+    mkdir -p out
+    {{nickel}} export -f json "convert-unbound.ncl" > "out/unbound-conf.json"
+
