@@ -4,7 +4,7 @@
 
 - configure system services using an abstract schema, to provide flexibility over variations in implementations. (\# initially, the schema defines a forwarding dns server and upstream dns servers)
 - validate the configuration, using static and dynamic type checking and nickel contracts, and in-editor LSP, with customizable error messages
-- convert the abstract configuration into a server- and nixos- specific configuration that can be exported as json and imported by a `.nix` config. (\* initially, unbound)
+- convert the abstract configuration into a service- and nixos- specific configuration that can be exported as json and imported by a `.nix` config. (\* initially, unbound)
 
 Caveat: This is a WIP and the DNS configuration is incomplete, although there's enough to make it work for a simple subnet forwarding dns server.
 
@@ -28,12 +28,12 @@ Caveat: This is a WIP and the DNS configuration is incomplete, although there's 
 
 1. Hand-generate server configuration (`example-dns.ncl`), which is validated against the schema `dns.ManagedDNSServer`.
 
-2. Convert the abstract configuration to a server- (Unbound) and os- (nixos) specific configuration using `convert-unbound.ncl`. On the command line, this is done with `just gen-unbound`. If there are no errors, the result is a json file that provides the complete configuration for nixos `server.unbound`.
+2. Convert the abstract configuration to a nixos service-specific configuration using `convert-unbound.ncl`. On the command line, this is done with `just gen-unbound`. If there are no errors, the result is a json file that provides the complete configuration for nixos `services.unbound`.
 
 3. Import into nixos by adding this module:
 
 ```
-  { ... }:
+{ ... }:
 let
   config = builtins.fromJSON (builtins.readFile ./unbound-conf.json);
 in
