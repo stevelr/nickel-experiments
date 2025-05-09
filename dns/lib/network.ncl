@@ -33,6 +33,8 @@ in {
         2 => fn_regex (std.array.at 0 split) && (_is_strnum_le (std.array.at 1 split) bits),
         _ => false,
       },
+    # true if ip address matches localhost
+    is_ip_localhost = fun addr => std.array.elem addr ["127.0.0.1", "::1"],
   },
 
   # kinds of network service. Meant to be generic, even if there are multiple implementations

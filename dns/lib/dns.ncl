@@ -1,3 +1,4 @@
+# TODO: zone, dnsserver, forwardZoneRef
 let
 # library imports
 network = import "./network.ncl",
@@ -96,33 +97,59 @@ DnsEntry = {
 DnsCacheSchema = {
   prefetch | doc "prefetch when cache entry is nearing expiration" | Bool | optional | default = false,
   minTtl | doc "min ttl in seconds. omit to disable" | std.number.PosNat | optional,
-  maxTtl | doc "max ttl in seconds. When cache entry has reached ttl age, it is expired. Default=86400 (1 day)" | std.number.PosNat | optional | default = 86400,
+  maxTtl
+    | doc "max ttl in seconds. When cache entry has reached ttl age, it is expired. Default=86400 (1 day)"
+    | std.number.PosNat
+    | optional
+    | default
+    = 86400,
 },
 DnsLoggingSchema = {
   queries | doc "log all queries" | Bool | optional | default = false,
   requests | doc "log all requests" | Bool | optional | default = false,
   responses | doc "log all responses" | Bool | optional | default = false,
   cacheMiss | doc "log cache misses" | Bool | optional | default = false,
-  toStderr | doc "log to stderr. True for nix systemd, to be captured by journald" | Bool | optional | default = true,
+  toStderr
+    | doc "log to stderr. True for nix systemd, to be captured by journald"
+    | Bool
+    | optional
+    | default
+    = true,
   logDir | doc "directory for file-based logging" | common.FilePath | optional,
 },
 Dnssec = {
   useQuic | Bool | optional | default = false,
   useDoH | Bool | optional | default = false,
   useDoT | Bool | optional | default = false,
-  trustAnchorFile | common.Nullable String | optional | default = null,
-  useRootTrustAnchor | doc "use and update root trust anchor for DNSSEC validation" | Bool | optional | default = true,
+  trustAnchorFile | String | optional,
+  useRootTrustAnchor
+    | doc "use and update root trust anchor for DNSSEC validation"
+    | Bool
+    | optional
+    | default
+    = true,
   tls | network.TlsSettings | optional,
 },
 # advanced provacy controls
 DnsPrivacy = {
-  qnameMinimisation | doc "send minimum amount of information to upstream servers to enhance privacy" | Bool | default = true,
+  qnameMinimisation
+    | doc "send minimum amount of information to upstream servers to enhance privacy"
+    | Bool
+    | default
+    = true,
   denyAny | doc "deny queries of type ANY with an empty response" | Bool | optional | default = true,
-  minimalResponse | doc "do not insert authority/additional sections into response messages when those sections are not required. This reduces response size significantly, and may avoid TCP fallback for some responses which may cause a slight speedup." | Bool | optional | default = true,
+  minimalResponse
+    | doc m%"do not insert authority/additional sections into response messages
+      when those sections are not required. This reduces response size significantly,
+      and may avoid TCP fallback for some responses which may cause a slight speedup."%
+    | Bool
+    | optional
+    | default
+    = true,
   hideHostname | doc "refuse queries to id.server and hostname.bind" | Bool | optional | default = true,
-  hostname | doc "identity to report. if unset, hostname of server is returned" | common.Nullable String | optional | default = null,
+  hostname | doc "identity to report. if unset, hostname of server is returned" | String | optional,
   hideVersion | doc "refuse queries to version.server and version.bind" | Bool | default = true,
-  version | doc "version to report. if unset, package version is returned" | common.Nullable String | optional | default = null,
+  version | doc "version to report. if unset, package version is returned" | String | optional,
 },
 in let Zone = {
   domain | doc "fully qualified domain name" | String,
@@ -136,12 +163,17 @@ in
   DnsServer =
     network.mk_NetService 'Dns 53 'Udp
     & {
-      domain | doc "promary fqdn for this dns server" | common.Nullable String | default = null,
       # TODO: DNSSEC settings, cert files, etc.
     },
 
+  # returns true if the server is a dns server
+  is_dns_server = fun server => server.kind == 'Dns,
+
   ForwardZoneRef = {
-    domain | doc "domain, including wildcards, to forward to upstream server. Use null for all-domain wildcard" | common.Nullable String | default = null,
+    domain
+      | doc "domain, including wildcards, to forward to upstream server. Omit for all-domain wildcard"
+      | String
+      | optional,
     serverId | doc "server id for upstream dns server" | common.Id,
   },
 
@@ -156,21 +188,63 @@ in
   ManagedDnsServer =
     DnsServer
     & {
-      #fqdn | doc "fully qualified host name. Required for the MNAME field in SOA record of new DNS zones" | String | optional,
       verbosity | doc "Logging verbosity" | common.Verbosity | default = 'Info,
-      logging | doc "Logging settings" | DnsLoggingSchema | optional | default = DnsLoggingSchema,
-      interfaces | doc "interfaces to connect to network, in addition to any ip addresses in `listen`. For interface names listed here, all IP addresses on that interface are used." | Array String | optional,
-      cache | doc "Cache settings" | common.Nullable DnsCacheSchema | optional | default = DnsCacheSchema,
+      logging
+        | doc "Logging settings"
+        | DnsLoggingSchema
+        | optional
+        | default
+        = DnsLoggingSchema,
+      interfaces
+        | doc m%"interfaces to connect to network, in addition to any ip addresses in `listen`.
+          For interface names listed here, all IP addresses on that interface are used."%
+        | Array String
+        | optional,
+      cache
+        | doc "Cache settings"
+        | common.Nullable DnsCacheSchema
+        | optional
+        | default
+        = DnsCacheSchema,
       zoneDataFile | doc "file(s) to load zone data" | Array common.FilePath | optional,
-      localZones | doc "local zones - we act as server for the zone" | Array Zone | optional,
-      forwardZones | doc "forward zones, selected by 'domain' field to send o recursive server" | Array ForwardZoneRef | optional,
+      localZones
+        | doc "local zones - we act as server for the zone"
+        | Array Zone
+        | optional,
+      forwardZones
+        | doc "forward zones, selected by 'domain' field to send o recursive server"
+        | Array ForwardZoneRef
+        | optional,
       netAccess | doc "access control by ip" | Array network.NetAccessRule | optional,
-      localOverrides | doc "static addresses to return for intercepted queries" | Array DnsEntry | optional,
+      localOverrides
+        | doc "static addresses to return for intercepted queries"
+        | Array DnsEntry
+        | optional,
       dnssec | doc "DNSSEC settings" | Dnssec | default = Dnssec,
-      privacy | doc "Advanced privacy settings" | DnsPrivacy | optional | default = DnsPrivacy,
-      privateAddresses | doc "private subnets on your private network, will not be allowed to be returned for public internet names" | Array network.IpAddrCidr | optional | default = network.const.rfc1918_networks,
-      privateDomains | doc "allow this domain, and all its subdomains, to contain private addresses. Supercedes privateAddresses" | Array String | optional,
-      sysConfig | doc "system (os) settings" | common.SystemService | optional | default = common.SystemService,
+      privacy
+        | doc "Advanced privacy settings"
+        | DnsPrivacy
+        | optional
+        | default
+        = DnsPrivacy,
+      privateAddresses
+        | doc m%"private subnets on your private network, will not be allowed
+              to be returned for public internet names"%
+        | Array network.IpAddrCidr
+        | optional
+        | default
+        = network.const.rfc1918_networks,
+      privateDomains
+        | doc m%"allow this domain, and all its subdomains,
+              to contain private addresses. Supercedes privateAddresses"%
+        | Array String
+        | optional,
+      sysConfig
+        | doc "system (os) settings"
+        | common.SystemService
+        | optional
+        | default
+        = common.SystemService,
     },
 
   # unbound-specific defaults, using abstract schema (ManagedDnsServer).
@@ -181,7 +255,7 @@ in
         {
           user = "unbound",
           group = "unbound",
-          workingDir = "/var/lib/unbound",
+          workingDir | default = "/var/lib/unbound",
         } | common.SystemService,
       verbosity = 'Info,
       extra = {
@@ -191,4 +265,3 @@ in
       },
     } | ManagedDnsServer,
 }
-# 35,47

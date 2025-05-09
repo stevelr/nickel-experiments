@@ -1,9 +1,7 @@
 # common.ncl
 #
 {
-  # helper to create nullable type
-  #mk_nullable = fun test_val => std.contract.from_predicate (fun value => null == value || (test_val value)),
-
+  # allow value to be null or match a contract
   Nullable = fun Contract =>
     std.contract.custom (fun label value =>
       if value == null then
@@ -67,7 +65,7 @@
 
   # This defines a function that returns the first element satisfying a predicate.
   # from https://github.com/tweag/nickel/blob/9ddda8ac5642b960f21f010943c776e5ee966b4c/core/stdlib/std.ncl#L318
-  find-first : forall a. (a -> Bool) -> Array a -> [| 'Some a, 'None |] = fun pred xs =>
+  find_first : forall a. (a -> Bool) -> Array a -> [| 'Some a, 'None |] = fun pred xs =>
     # Our fold function, which just ignores the accumulator and immediately
     # returns an element if it satisfies the predicate. Note that `'Error`
     # (which is the short-circuiting branch) means that we found something.
@@ -111,5 +109,9 @@
     |> match {
       'Some v => v,
       'None => default_val
-    }
+    },
+
+  # convert 'Some_/'None (e.g., output of getdeep) into a record:
+  #   'Some value is mapped through the provided function, 'None maps to {}.
+  map_rec = fun mapper => match { 'Some v => (mapper v), 'None => {} },
 }
