@@ -215,10 +215,17 @@ in
       contract that matches an ipv6 address.
 
       ## Examples
+
       ```nickel
         "::1" | Ip6Address
         # => "::1"
       ```
+
+      ```nickel
+        "1111:2222::abcd" | Ip6Address
+        # => "1111:2222::abcd"
+      ```
+
      "%
     =
       std.contract.from_validator (fun value =>
@@ -235,7 +242,7 @@ in
 
       ## Examples
       ```nickel
-        "fe80::/64" | Ip6Address
+        "fe80::/64" | Ip6AddrCidr
         # => "fe80::/64"
       ```
      "%
@@ -252,10 +259,16 @@ in
       contract that matches an ipv4 or ipv6 address
 
       ## Examples
+
       ```nickel
-        [ "127.0.0.1", "::1" ] | Array IpAddress
-        # => "[ "127.0.0.1", "::1" ]"
+      "::1" | IpAddress
+      # => "::1"
       ```
+
+      # ```nickel
+        # [ "127.0.0.1", "::1" ] | Array IpAddress
+        # => "[ "127.0.0.1", "::1" ]"
+      # ```
      "%
     =
       std.contract.from_validator (fun addr =>
@@ -321,7 +334,7 @@ in
 
       ##Examples
       ```nickel
-        { hostname = "app", address = "10.100.0.40", port = "443", proto = "Tcp" }
+        { hostname = "app", address = "10.100.0.40", port = 443, proto = 'Tcp }
         | HostPort
       ```
       "%
@@ -388,10 +401,9 @@ in
       proto | Proto,
     },
     outputs | NetService =
-      common.Entity
+      (common.Entity & { kind | default = withDefaults.kind })
       & NetService
       & {
-        kind | default = withDefaults.kind,
         listen
           | doc "for local service, list of ips and ports to open for listening"
           | Array (
